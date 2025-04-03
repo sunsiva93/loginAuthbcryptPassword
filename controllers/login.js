@@ -1,18 +1,23 @@
 import bcrypt from "bcryptjs"
-import { register } from "../model/schema/index.js"
+import { User } from "../model/schema/index.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
+
+const generateToken = (user) => {
+    return jwt.sign({ id: user._id, username: user.username, mail: user.mail }, process.env.JWT_SECRET, { expiresIn: "1d" });
+};
 
 const UserReg = async(req,res)=>{
     try {
         const {username , mail , password} = req.body
 
         const hashSalt = await bcrypt.genSalt(10)
-        const hashPassword = await bcrypt.hash(password , hashSalt)
+        const hashedPassword = await bcrypt.hash(password , hashSalt)
 
-        const Data = new register({
+        const Data = new User({
             username , 
             mail , 
-            password : hashPassword
+            password : hashedPassword
         })
         const UsersData = await Data.save()
         return res.status(201).json({
@@ -32,7 +37,7 @@ const UserReg = async(req,res)=>{
 const UserLogin = async(req,res)=>{
     try {
         const {mail, password} = req.body
-        const user = await register.findOne({mail})
+        const user = await User.findOne({mail})
         if (!user) {
             console.log(`mail not found`);
             return res.status(404).json({
@@ -48,8 +53,8 @@ const UserLogin = async(req,res)=>{
                 message: "Invalid password!",
             })  
         }
-
-        const token = jwt.sign({ id: user._id, username: user.username, mail: user.mail }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      
+        const token = generateToken(user)
 
         return res.status(200).json({
             status: true,
@@ -66,9 +71,78 @@ const UserLogin = async(req,res)=>{
     }
 }
 
+const ForgotPassword = async (req, res) => {
+    try {
+        const { mail } = req.body;
+        const user = await User.findOne({ mail });
+        if (!user) {
+            return res.status(404).json({
+                status: false,
+                message: "Mail not found in database!"
+            });
+        }
+
+        const resetToken = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" } // 1 hour expiration
+        );
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+        await user.save();
+
+        return res.status(200).json({
+            status: true,
+            message: "Password reset token generated!",
+            resetToken
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: `Error: ${error.message}`
+        });
+    }
+};
+
+
+const ResetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { newPassword } = req.body;
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+
+        if (!user || user.resetPasswordExpire < Date.now()) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid or expired reset token!"
+            });
+        }
+
+        const hashSalt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, hashSalt);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        return res.status(200).json({
+            status: true,
+            message: "Password reset successfully!"
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: `Error: ${error.message}`
+        });
+    }
+};
+
+
 const AllUsers = async(req,res)=>{
     try {
-        const getUsers = await register.find()
+        const getUsers = await User.find()
         return res.status(200).json({
             status : true,
             message : "Fetched all UsersData Successfully!!!",
@@ -100,4 +174,36 @@ const Profile = async(req,res)=>{
         })
     }
 }
-export {UserReg , AllUsers , UserLogin , Profile}
+
+const getUserById  = async(req,res)=>{
+    try {
+        const userId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({
+                status : false,
+                message : `Invalid User ID format!`
+            })
+        }
+        const UserInfo = await User.findById(userId)
+        if (!UserInfo) {
+            console.log(error);
+            return res.status(404).json({
+                status : false,
+                message : `Cannot get/fetched the user! , ${error.message}`
+            })
+        }
+        return res.status(200).json({
+            status : true,
+            message : `Fetched UsersData : ${userId} Successfully!!!`,
+            UserInfo
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            status : false,
+            message : `Can't get User Info! , ${error.message}`
+        })
+    }
+}
+
+export {UserReg , AllUsers , UserLogin , Profile , getUserById  , ForgotPassword , ResetPassword}

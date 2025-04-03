@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-import { register } from "../model/schema/index.js"
+import { User } from "../model/schema/index.js"
 
 const authMiddleware = async(req,res,next)=>{
     try {
@@ -11,7 +11,7 @@ const authMiddleware = async(req,res,next)=>{
             })
         }
         const decode =  jwt.verify(token , process.env.JWT_SECRET)
-        const user =  await register.findById(decode.id)
+        const user =  await User.findById(decode.id)
         if (!user) {
             return res.status(404).json({
                 status: false,

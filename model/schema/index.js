@@ -1,5 +1,5 @@
-import register from "./registerSch.js"
+import User from "./UserSch.js"
 
 export {
-    register
+    User
 }
