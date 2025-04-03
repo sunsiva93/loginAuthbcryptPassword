@@ -12,7 +12,7 @@ const UserReg = async(req,res)=>{
         const Data = new register({
             username , 
             mail , 
-            hashPassword
+            password : hashPassword
         })
         const UsersData = await Data.save()
         return res.status(201).json({
@@ -22,7 +22,7 @@ const UserReg = async(req,res)=>{
         })
     } catch (error) {
         console.log(error);
-        return res.json({
+        return res.status(500).json({
             status : false,
             message : `registration failed! , ${error.message}`
         })
