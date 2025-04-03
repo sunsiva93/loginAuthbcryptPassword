@@ -3,9 +3,7 @@ import mongoose from "mongoose";
 const MONGODB_URL= process.env.MONGODB_URI || "mongodb://localhost:27017/login"
 const dbConn = async()=>{
     try {
-        const dbRes = await mongoose.connect(MONGODB_URL)
-        
-        dbRes
+        await mongoose.connect(MONGODB_URL)
         .then(()=>{
             console.log(`db is connected : ${MONGODB_URL}`);
         })

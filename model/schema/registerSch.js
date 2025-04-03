@@ -1,20 +1,19 @@
 import mongoose from "mongoose";
 
 const registerSch = new mongoose.Schema({
-    username : {
-        type : String,
-        required : true
-    },
-    mail :{
-        type : String,
-        required : true,
-        unique : true
-    },
-    password : {
-        type : String,
-        required : true
-    }
-} , {collection : "users" , timestamps : true , type : new Date.now()})
+    username: { type: String, required: true },
+    mail: { type: String, required: true, unique: true, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+    password: { type: String, required: true },
+    createdAtIST: { type: String }
+}, { collection: "User" });
 
-const register = mongoose.model("users" , registerSch)
-export default register
+registerSch.pre('save', function (next) {
+    if (!this.createdAtIST) {
+        const istDate = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+        this.createdAtIST = istDate;
+    }
+    next();
+});
+
+const register = mongoose.model("User", registerSch);
+export default register;
