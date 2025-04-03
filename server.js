@@ -9,7 +9,7 @@ console.log(env);
 const app = express()
 const PORT = process.env.PORT
 app.use(express.json())
-app.use("/api/v1" , UserRouter)
+app.use("/api/v1/user" , UserRouter)
 app.listen(PORT , async ()=>{
     await dbConn()
     console.log(`server is running on port: http://127.0.0.1:${PORT}`);

@@ -1,6 +1,8 @@
-import { UserReg , AllUsers } from "./login.js";
+import { UserReg , AllUsers  , UserLogin , Profile} from "./login.js";
 
 export {
     UserReg ,
-    AllUsers
+    AllUsers,
+    UserLogin,
+    Profile
 }
