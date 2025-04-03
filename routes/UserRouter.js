@@ -6,7 +6,7 @@ const UserRouter = express.Router()
 
 UserRouter.get("/alluser" , AllUsers)
 UserRouter.get("/profile" , authMiddleware , Profile)
-UserRouter.get("/userId/:id" , getUserById)
+UserRouter.get("/userId/:id" , authMiddleware , getUserById)
 UserRouter.post("/register" , UserReg)
 UserRouter.post("/login" , UserLogin)
 UserRouter.post("/forgot-password" , ForgotPassword)

@@ -6,7 +6,8 @@ const UserSch = new mongoose.Schema({
     password: { type: String, required: true },
     resetPasswordToken: { type: String },
     resetPasswordExpire: { type: Date },
-    createdAtIST: { type: String }
+    createdAtIST: { type: String },
+    lastActivity: { type: Date, default: Date.now },
 }, { collection: "User" });
 
 UserSch.pre('save', function (next) {

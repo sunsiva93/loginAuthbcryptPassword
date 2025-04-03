@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs"
 import { User } from "../model/schema/index.js"
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose"
+import moment from "moment-timezone"
 
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, username: user.username, mail: user.mail }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -10,7 +11,6 @@ const generateToken = (user) => {
 const UserReg = async(req,res)=>{
     try {
         const {username , mail , password} = req.body
-
         const hashSalt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password , hashSalt)
 
@@ -52,8 +52,7 @@ const UserLogin = async(req,res)=>{
                 status: false,
                 message: "Invalid password!",
             })  
-        }
-      
+        } 
         const token = generateToken(user)
 
         return res.status(200).json({
@@ -85,11 +84,11 @@ const ForgotPassword = async (req, res) => {
         const resetToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET,
-            { expiresIn: "1h" } // 1 hour expiration
+            { expiresIn: "1h" }
         );
 
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+        user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; 
         await user.save();
 
         return res.status(200).json({
@@ -122,14 +121,29 @@ const ResetPassword = async (req, res) => {
         }
 
         const hashSalt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, hashSalt);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
+        const hashedPassword = await bcrypt.hash(newPassword, hashSalt);
 
+        const updatedUser = await User.findByIdAndUpdate(
+            decoded.id,
+            {
+                password: hashedPassword,
+                resetPasswordToken: undefined,
+                resetPasswordExpire: undefined,
+                lastActivity: moment().tz("Asia/Kolkata").toDate(),
+            },
+            { new: true }
+        );
+        const expiryInIST = moment(updatedUser.resetPasswordExpire)
+            .tz("Asia/Kolkata")
+            .format("DD/MM/YYYY, h:mm:ss A");
         return res.status(200).json({
             status: true,
-            message: "Password reset successfully!"
+            message: "Password reset successfully!",
+            updatedUser: {
+                ...updatedUser.toObject(),
+                resetPasswordExpire: expiryInIST ,
+                lastActivity: moment(updatedUser.lastActivity).tz("Asia/Kolkata").format("DD/MM/YYYY, h:mm:ss A"),
+            }
         });
     } catch (error) {
         return res.status(500).json({
@@ -138,7 +152,6 @@ const ResetPassword = async (req, res) => {
         });
     }
 };
-
 
 const AllUsers = async(req,res)=>{
     try {
